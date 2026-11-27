@@ -14,14 +14,14 @@
 
 ## 投稿
 
-1. 照着[编写指南](https://github.com/kadaliao/exit/blob/main/docs/EFFECTS.zh-CN.md)写一个，
-   或者让 Exit 的 AI 帮你写（设置 → AI 生成）。
-2. 选一种方式提交：
-   - **在 Exit 里：** 设置 → 特效，点特效卡片上的**投稿**。Exit 会先检查，再复制代码并打开投稿表单。
-   - **[新建投稿](https://github.com/kadaliao/exit-effects/issues/new?template=submit-effect.yml)**，粘贴代码。
-   - **直接提 PR**，新增 `effects/<id>.metal`。
-3. 几分钟内机器人会检查、渲染预览并回复。通过 issue 投稿的，机器人会自己开 PR，提交作者
-   记为你。有问题就编辑 issue 修改，检查会重新跑。审核合并后，所有人的特效市场里都会出现它。
+让你的 coding agent（Claude Code、Codex 等）来做：*“把我的 Paper Plane 特效投稿到 Exit 特效市场。”*
+[AGENTS.md](AGENTS.md) 会告诉它怎么做。在 Exit 里，“设置 → 特效市场 → **复制提示词**”可以复制一段现成的请求。
+
+agent 会运行 `Exit --market submit <特效> --wait`（需要 Exit 0.3.1 及以上，并已登录 GitHub CLI）：
+先在你的 Mac 上检查特效，再提交一个投稿 issue；机器人会再检查一遍、渲染预览，并以你为提交作者自动开 PR。
+要修改的话，agent 再运行一次同样的命令，会更新同一个 issue。审核合并后，所有人的特效市场里都会出现它。
+
+也可以直接提 PR，新增 `effects/<id>.metal`。
 
 ### 检查哪些东西
 

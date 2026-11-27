@@ -1,5 +1,8 @@
 blank_issues_enabled: true
 contact_links:
+  - name: Submit an effect · 投稿特效
+    url: https://github.com/kadaliao/exit-effects/blob/main/AGENTS.md
+    about: Ask your coding agent to run `Exit --market submit`; this guide tells it how. · 让你的 coding agent 运行 `Exit --market submit` 投稿，这份指南告诉它怎么做。
   - name: Problems with the Exit app · Exit 本身的问题
     url: https://github.com/kadaliao/exit/issues
     about: Bugs and ideas for Exit itself go to the app's repository. · App 的 bug 和建议请提到 Exit 仓库。

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Turns a submission issue into a pull request. Run by .github/workflows/submission.yml.
+"""Turns a submission issue (sent by `Exit --market submit`) into a pull request. Run by
+.github/workflows/submission.yml.
 
     python3 scripts/submission.py read [event.json]
         Reads the issue (default: $GITHUB_EVENT_PATH), writes effects/<id>.metal and checks it.
@@ -26,7 +27,7 @@ import fx
 STATE = fx.ROOT / "build/submission.json"
 ASSETS = "review-assets"
 BOT = ("github-actions[bot]", "41898282+github-actions[bot]@users.noreply.github.com")
-LABEL_OK, LABEL_FIX = "checks passed", "needs changes"
+LABEL_SUBMISSION, LABEL_OK, LABEL_FIX = "submission", "checks passed", "needs changes"
 
 
 def sections(body: str) -> dict:
@@ -94,11 +95,11 @@ def read(event_path: str):
     fx.ROOT.joinpath("build").mkdir(exist_ok=True)
 
     if not re.search(r"\beffect\s*\(", source):
-        state["report"] = ("❌ I couldn't find the shader in this issue. Paste the whole `.metal` file into "
-                           "**Shader source**. · 没有找到着色器代码，请把整个 `.metal` 文件粘贴到 **Shader source** 里。\n")
+        state["report"] = ("❌ I couldn't find the shader in this issue. Send the effect with "
+                           "`Exit --market submit <file>`. · 没有找到着色器代码，请用 `Exit --market submit <文件>` 投稿。\n")
     elif not fx.ID_RE.match(eid) or eid == "prelude":
-        state["report"] = (f"❌ `{eid or '(empty)'}` can't be a file name. Set **Effect ID** to 2–40 lowercase letters, "
-                           "digits and dashes, like `paper-plane`. · 特效 ID 只能用小写字母、数字和短横线，例如 `paper-plane`。\n")
+        state["report"] = (f"❌ `{eid or '(empty)'}` can't be a file name. Rename the file to 2–40 lowercase letters, "
+                           "digits and dashes, like `paper-plane.metal`. · 文件名只能用小写字母、数字和短横线，例如 `paper-plane.metal`。\n")
     else:
         path = fx.EFFECTS / f"{eid}.metal"
         if path.exists():
@@ -175,12 +176,13 @@ def publish(gif: str | None):
         pr = None
 
     if state["ok"]:
-        status = (f"✅ All checks passed. Pull request: #{pr}. The maintainer will take a look soon; "
-                  "you can still edit this issue to change the code. · 检查全部通过，已提交 PR，等待审核；"
-                  "需要改代码的话直接编辑这个 issue 即可。")
+        status = (f"✅ All checks passed. Pull request: #{pr}. The maintainer will take a look soon. To change "
+                  "the effect, run `Exit --market submit` again: it updates this issue. · 检查全部通过，已提交 PR，"
+                  "等待审核。要修改的话再运行一次 `Exit --market submit`，会更新这个 issue。")
     else:
-        status = ("❌ Some checks failed. Edit this issue (**···** → **Edit**) to fix the code, and the checks run "
-                  "again. · 有检查没通过。编辑这个 issue（**···** → **Edit**）改好代码后会自动重新检查。")
+        status = ("❌ Some checks failed. Fix the effect and run `Exit --market submit` again: it updates this "
+                  "issue and the checks run again. · 有检查没通过。改好特效后再运行一次 `Exit --market submit`，"
+                  "会更新这个 issue 并重新检查。")
     comment = "\n\n".join(x for x in [
         "Thanks for the submission! · 感谢投稿！",
         f"![preview]({preview})" if preview else None,
@@ -190,7 +192,7 @@ def publish(gif: str | None):
     if not edited:
         gh("issue", "comment", str(n), "--body", comment)
     add, remove = (LABEL_OK, LABEL_FIX) if state["ok"] else (LABEL_FIX, LABEL_OK)
-    gh("issue", "edit", str(n), "--add-label", add, "--remove-label", remove, check_=False)
+    gh("issue", "edit", str(n), "--add-label", f"{LABEL_SUBMISSION},{add}", "--remove-label", remove, check_=False)
     print(f"issue #{n}: {'ok' if state['ok'] else 'needs changes'}" + (f", PR #{pr}" if pr else ""))
     if not state["ok"]:
         sys.exit(1)

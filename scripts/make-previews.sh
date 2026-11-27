@@ -1,10 +1,12 @@
 #!/bin/bash
-# Renders preview GIFs for market effects, the same way Exit renders its README GIFs.
+# Renders previews for market effects, the same way Exit renders its README GIFs.
 #
 #   scripts/make-previews.sh OUT_DIR effects/blinds.metal [more.metal ...]
 #
-# Writes OUT_DIR/<id>.gif. Needs Exit (EXIT_BIN, or build/Exit.app from scripts/get-exit.sh)
-# and ffmpeg, gifski and gifsicle (brew install ffmpeg gifski gifsicle).
+# Writes OUT_DIR/<id>.gif (for issues and pull requests), OUT_DIR/<id>.mp4 (for the website)
+# and OUT_DIR/<id>.jpg (a still from the middle of the effect). Needs Exit (EXIT_BIN, or
+# build/Exit.app from scripts/get-exit.sh) and ffmpeg, gifski and gifsicle
+# (brew install ffmpeg gifski gifsicle).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -24,7 +26,8 @@ SCALE=2
 STAGE_W=2720 STAGE_H=2040
 WIN_W=1440 WIN_H=920
 WIN_X=$(( (STAGE_W - WIN_W) / 2 )) WIN_Y=$(( (STAGE_H - WIN_H) / 2 ))
-OUT_W=${OUT_W:-640} OUT_H=$(( OUT_W * STAGE_H / STAGE_W ))
+OUT_W=${OUT_W:-640}                                          # GIF width
+VIDEO_W=${VIDEO_W:-1440} VIDEO_H=$(( VIDEO_W * STAGE_H / STAGE_W ))   # video and still size
 FPS=30
 QUALITY=${QUALITY:-90}
 
@@ -37,7 +40,7 @@ OPEN_EMPTY=$(( FPS * 3 / 10 )) OPEN_HOLD=$(( FPS * 8 / 10 ))
 # then drops whatever those full frames repeat, so they cost little.
 KEY_EVERY=$(( FPS / 10 ))
 
-DOWNSCALE="scale=$OUT_W:$OUT_H:flags=lanczos+accurate_rnd+full_chroma_int,format=rgb24"
+DOWNSCALE="scale=$VIDEO_W:$VIDEO_H:flags=lanczos+accurate_rnd+full_chroma_int,format=rgb24"
 
 is_opening() {   # an effect that only plays when a window opens
   local events
@@ -97,6 +100,18 @@ encode() {
   gifsicle --no-warnings -O3 --loopcount=forever "${pieces[@]}" -o "$out"
 }
 
+# video list.txt out.mp4: H.264 that plays everywhere, tagged BT.709 with the sRGB curve so
+# browsers show the same colors as the GIF.
+video() {
+  local seq="${1%.txt}-seq" i=0 f
+  rm -rf "$seq"; mkdir -p "$seq"
+  while IFS= read -r f; do ln -s "$f" "$seq/$(printf %04d "$i").png"; i=$(( i + 1 )); done < "$1"
+  ffmpeg -v error -y -framerate "$FPS" -i "$seq/%04d.png" \
+    -vf "scale=out_color_matrix=bt709:out_range=tv,format=yuv420p" \
+    -c:v libx264 -preset slow -crf 20 -profile:v high -movflags +faststart -an \
+    -x264-params "colorprim=bt709:transfer=iec61966-2-1:colormatrix=bt709:range=tv" "$2"
+}
+
 mkdir -p "$DEST"
 
 echo "▸ wallpaper and window"
@@ -136,6 +151,7 @@ for src in "$@"; do
       repeat "$WORK/empty.png" "$OPEN_EMPTY"
       ls "$frames"/*.png; } > "$list"
     n=$(wc -l < "$list")
+    still=$(( OPEN_HOLD + OPEN_EMPTY + (n - OPEN_HOLD - OPEN_EMPTY) / 2 ))
     keys=(0 "$OPEN_HOLD")
     for (( k = OPEN_HOLD + OPEN_EMPTY; k < n; k += KEY_EVERY )); do keys+=("$k"); done
   else
@@ -146,12 +162,15 @@ for src in "$@"; do
       ls "$frames"/*.png | tail -n +2
       repeat "$WORK/empty.png" "$CLOSE_EMPTY"; } > "$list"
     n=$(wc -l < "$list")
+    still=$(( CLOSE_HOLD + (n - CLOSE_HOLD - CLOSE_EMPTY) * 45 / 100 ))
     keys=(0)
     for (( k = CLOSE_HOLD; k < n - CLOSE_EMPTY; k += KEY_EVERY )); do keys+=("$k"); done
     keys+=($(( n - CLOSE_EMPTY )))
   fi
   encode "$list" "$DEST/$id.gif" "${keys[@]}"
-  printf '  %-16s %3d frames  %4d KB\n' "$id" "$(gifsicle --info "$DEST/$id.gif" | sed -nE '1s/.* ([0-9]+) images.*/\1/p')" \
-    $(( $(stat -f %z "$DEST/$id.gif") / 1024 ))
+  video "$list" "$DEST/$id.mp4"
+  ffmpeg -v error -y -i "$(sed -n "$(( still + 1 ))p" "$list")" -q:v 3 "$DEST/$id.jpg"
+  printf '  %-16s %3d frames  gif %4d KB  mp4 %4d KB\n' "$id" "$n" \
+    $(( $(stat -f %z "$DEST/$id.gif") / 1024 )) $(( $(stat -f %z "$DEST/$id.mp4") / 1024 ))
 done
 echo "▸ done"

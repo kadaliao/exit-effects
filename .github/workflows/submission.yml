@@ -1,4 +1,5 @@
-# Turns a submission issue (from the "Submit an effect" form) into a pull request.
+# Turns a submission issue into a pull request. Submissions come from `Exit --market submit`
+# (see AGENTS.md), which starts the issue with an <!-- exit-effect-submission --> marker.
 name: Submission
 on:
   issues:
@@ -12,7 +13,10 @@ concurrency:
   cancel-in-progress: true
 jobs:
   submit:
-    if: github.event.issue.state == 'open' && contains(github.event.issue.labels.*.name, 'submission')
+    if: >-
+      github.event.issue.state == 'open' &&
+      (startsWith(github.event.issue.body, '<!-- exit-effect-submission') ||
+       contains(github.event.issue.labels.*.name, 'submission'))
     runs-on: macos-15
     env:
       GH_TOKEN: ${{ github.token }}

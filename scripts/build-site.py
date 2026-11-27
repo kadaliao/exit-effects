@@ -4,8 +4,8 @@
     python3 scripts/build-site.py plan            print the effects whose preview must be rendered
     python3 scripts/build-site.py build [--out _site] [--no-render]
 
-Previews of effects that haven't changed are copied from the live site, so only new and
-edited effects are rendered (that needs Exit, ffmpeg, gifski and gifsicle).
+Previews (a GIF, an MP4 and a still) of effects that haven't changed are copied from the live
+site, so only new and edited effects are rendered (that needs Exit, ffmpeg, gifski and gifsicle).
 """
 
 import argparse
@@ -64,6 +64,8 @@ def entries():
             "requires": meta.get("requires"),
             "file": rel,
             "preview": f"previews/{path.stem}-{sha[:8]}.gif",
+            "video": f"previews/{path.stem}-{sha[:8]}.mp4",
+            "poster": f"previews/{path.stem}-{sha[:8]}.jpg",
             "sha256": sha,
             "size": len(data),
             "added": git("log", "--diff-filter=A", "--format=%cs", "--", rel).split("\n")[-1] or None,
@@ -74,9 +76,12 @@ def entries():
     return out
 
 
+MEDIA = ("preview", "video", "poster")   # rendered together by make-previews.sh: .gif, .mp4, .jpg
+
+
 def plan(items, live):
-    """Effects with no preview on the live site for their current contents."""
-    return [e for e in items if live.get(e["id"], {}).get("preview") != e["preview"]]
+    """Effects with no previews on the live site for their current contents."""
+    return [e for e in items if any(live.get(e["id"], {}).get(k) != e[k] for k in MEDIA)]
 
 
 def build(out: Path, render: bool):
@@ -92,12 +97,13 @@ def build(out: Path, render: bool):
     for e in items:
         shutil.copy(fx.ROOT / e["file"], out / e["file"])
         if e["id"] not in todo:
-            data = fetch(fx.SITE + e["preview"])
-            if data:
-                (out / e["preview"]).write_bytes(data)
-                print(f"  reuse  {e['preview']}")
-            else:
-                todo.add(e["id"])
+            for k in MEDIA:
+                data = fetch(fx.SITE + e[k])
+                if not data:
+                    todo.add(e["id"])
+                    break
+                (out / e[k]).write_bytes(data)
+                print(f"  reuse  {e[k]}")
 
     rendered = 0
     if todo and render:
@@ -106,12 +112,14 @@ def build(out: Path, render: bool):
             subprocess.run([str(fx.ROOT / "scripts/make-previews.sh"), tmp, *files], check=True)
             for e in items:
                 if e["id"] in todo:
-                    shutil.move(Path(tmp) / f"{e['id']}.gif", out / e["preview"])
+                    for k in MEDIA:
+                        shutil.move(Path(tmp) / f"{e['id']}{Path(e[k]).suffix}", out / e[k])
                     rendered += 1
                     print(f"  render {e['preview']}")
     for e in items:
-        if not (out / e["preview"]).exists():
-            del e["preview"]
+        for k in MEDIA:
+            if not (out / e[k]).exists():
+                del e[k]
 
     index = {
         "format": FORMAT,
@@ -119,7 +127,7 @@ def build(out: Path, render: bool):
         "name_zh": "Exit 特效市场",
         "homepage": fx.SITE,
         "repo": f"https://github.com/{fx.REPO}",
-        "submit": f"https://github.com/{fx.REPO}/issues/new?template=submit-effect.yml",
+        "submit": f"https://github.com/{fx.REPO}/blob/main/AGENTS.md",
         "mirrors": fx.MIRRORS,
         "updated": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "effects": items,
@@ -128,6 +136,7 @@ def build(out: Path, render: bool):
     for f in (fx.ROOT / "site").iterdir():
         if f.is_file():
             shutil.copy(f, out / f.name)
+    shutil.copy(fx.ROOT / "AGENTS.md", out / "AGENTS.md")   # agents can read it from the site too
     (out / ".nojekyll").write_text("")
     missing = sum(1 for e in items if "preview" not in e)
     print(f"▸ {len(items)} effects, {rendered} previews rendered" + (f", {missing} without a preview" if missing else "") + f" → {out}")

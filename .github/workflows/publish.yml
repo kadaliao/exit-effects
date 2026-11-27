@@ -4,7 +4,7 @@ name: Publish
 on:
   push:
     branches: [main]
-    paths: ["effects/**", "site/**", "scripts/**", ".exit-version", ".github/workflows/publish.yml"]
+    paths: ["effects/**", "site/**", "scripts/**", "AGENTS.md", ".exit-version", ".github/workflows/publish.yml"]
   workflow_dispatch:
 permissions:
   contents: write

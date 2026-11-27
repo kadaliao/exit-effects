@@ -15,18 +15,17 @@ macOS app that plays an effect where a window closes. Each effect is one Metal f
 
 ## Submit an effect
 
-1. Write one with the [authoring guide](https://github.com/kadaliao/exit/blob/main/docs/EFFECTS.md),
-   or let Exit's AI write it (Settings → Create with AI).
-2. Send it in, whichever way suits you:
-   - **From Exit:** click **Submit** on the effect's card in Settings → Effects. Exit checks
-     it, copies the code and opens the submission form.
-   - **[Open a submission](https://github.com/kadaliao/exit-effects/issues/new?template=submit-effect.yml)**
-     and paste the code.
-   - **A pull request** that adds `effects/<id>.metal`.
-3. A bot checks it, renders a preview and replies within a few minutes. For submissions it
-   opens the pull request itself, with you as the commit author. Edit the issue to fix
-   anything; the checks run again. After a review it's merged and appears in everyone's
-   market.
+Ask your coding agent (Claude Code, Codex, …): *"Submit my Paper Plane effect to the Exit
+market."* [AGENTS.md](AGENTS.md) tells it what to do. In Exit, Settings → Market →
+**Copy Prompt** copies a request you can paste.
+
+The agent runs `Exit --market submit <effect> --wait` (Exit 0.3.1 or later, with the GitHub
+CLI signed in). That checks the effect on your Mac and opens a submission issue; a bot checks
+it again, renders a preview and opens a pull request with you as the commit author. To fix
+something, the agent runs the command again and the same issue is updated. After a review
+it's merged and appears in everyone's market.
+
+A pull request that adds `effects/<id>.metal` works too.
 
 ### What the checks look for
 
@@ -54,7 +53,7 @@ By submitting you confirm you wrote the effect (or may share it) and release it 
 
 | | |
 |---|---|
-| [`submission.yml`](.github/workflows/submission.yml) | turns a submission issue into a checked pull request, with the preview in the comment |
+| [`submission.yml`](.github/workflows/submission.yml) | turns a submission issue from `Exit --market submit` into a checked pull request, with the preview in the comment |
 | [`check.yml`](.github/workflows/check.yml) | checks effects changed by a pull request |
 | [`publish.yml`](.github/workflows/publish.yml) | on every merge: builds `index.json`, renders previews for new or changed effects and publishes the site to the `gh-pages` branch |
 
@@ -93,4 +92,5 @@ folder with an `index.json` like [this one](https://kadaliao.github.io/exit-effe
 
 `file` and `preview` are relative to the folder. Fork this repository to reuse the checks
 and the publishing: the scripts follow the repository they run in (change the links in
-`site/index.html` and the issue form), then enable GitHub Pages on the `gh-pages` branch.
+`site/index.html`, `AGENTS.md` and `MarketSubmit.repo` in Exit), then enable GitHub Pages on the
+`gh-pages` branch.
