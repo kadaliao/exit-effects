@@ -1,0 +1,16 @@
+name: probe
+on: workflow_dispatch
+jobs:
+  probe:
+    strategy:
+      matrix:
+        os: [macos-15, macos-14]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - run: sw_vers; sysctl -n machdep.cpu.brand_string; system_profiler SPDisplaysDataType | head -20
+      - run: gh release download v0.2.0 -R kadaliao/exit -p 'Exit-*.zip' && ditto -x -k Exit-0.2.0.zip . && ls
+        env: { GH_TOKEN: "${{ github.token }}" }
+      - run: time ./Exit.app/Contents/MacOS/Exit --check
+      - run: time ./Exit.app/Contents/MacOS/Exit --bench
+      - run: time ./Exit.app/Contents/MacOS/Exit --validate --only burn,glint
+      - run: which ffmpeg gifski gifsicle python3 || true; python3 --version
