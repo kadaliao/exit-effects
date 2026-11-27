@@ -14,12 +14,13 @@
 
 ## 投稿
 
-让你的 coding agent（Claude Code、Codex 等）来做：*“把我的 Paper Plane 特效投稿到 Exit 特效市场。”*
-[AGENTS.md](AGENTS.md) 会告诉它怎么做。在 Exit 里，“设置 → 特效市场 → **复制提示词**”可以复制一段现成的请求。
+在 Exit 0.4.0 及以上版本里，打开“设置 → 特效”，点你的特效上的**投稿**按钮（纸飞机）。Exit 会先在你的
+Mac 上检查特效，再用你的 GitHub 账号提交一个投稿 issue（第一次在 github.com 上输入验证码登录，已登录
+GitHub CLI 的话直接用它）；机器人会再检查一遍、渲染预览，并以你为提交作者自动开 PR，结果显示在特效卡片上。
+要修改的话，再点一次投稿，会更新同一个 issue。审核合并后，所有人的特效市场里都会出现它。
 
-agent 会运行 `Exit --market submit <特效> --wait`（需要 Exit 0.3.1 及以上，并已登录 GitHub CLI）：
-先在你的 Mac 上检查特效，再提交一个投稿 issue；机器人会再检查一遍、渲染预览，并以你为提交作者自动开 PR。
-要修改的话，agent 再运行一次同样的命令，会更新同一个 issue。审核合并后，所有人的特效市场里都会出现它。
+coding agent 也能代劳：对 Claude Code、Codex 等说 *“把我的 Paper Plane 特效投稿到 Exit 特效市场。”*
+[AGENTS.md](AGENTS.md) 会让它运行 `Exit --market submit <特效> --wait`。
 
 也可以直接提 PR，新增 `effects/<id>.metal`。
 

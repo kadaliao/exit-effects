@@ -177,12 +177,13 @@ def publish(gif: str | None):
 
     if state["ok"]:
         status = (f"✅ All checks passed. Pull request: #{pr}. The maintainer will take a look soon. To change "
-                  "the effect, run `Exit --market submit` again: it updates this issue. · 检查全部通过，已提交 PR，"
-                  "等待审核。要修改的话再运行一次 `Exit --market submit`，会更新这个 issue。")
+                  "the effect, press Submit in Exit again (or run `Exit --market submit`): it updates this issue. · "
+                  "检查全部通过，已提交 PR，等待审核。要修改的话在 Exit 里再点一次投稿（或再运行一次 "
+                  "`Exit --market submit`），会更新这个 issue。")
     else:
-        status = ("❌ Some checks failed. Fix the effect and run `Exit --market submit` again: it updates this "
-                  "issue and the checks run again. · 有检查没通过。改好特效后再运行一次 `Exit --market submit`，"
-                  "会更新这个 issue 并重新检查。")
+        status = ("❌ Some checks failed. Fix the effect and press Submit in Exit again (or run "
+                  "`Exit --market submit`): it updates this issue and the checks run again. · 有检查没通过。"
+                  "改好特效后在 Exit 里再点一次投稿（或再运行一次 `Exit --market submit`），会更新这个 issue 并重新检查。")
     comment = "\n\n".join(x for x in [
         "Thanks for the submission! · 感谢投稿！",
         f"![preview]({preview})" if preview else None,

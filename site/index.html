@@ -313,15 +313,15 @@ dialog .close svg { width: 12px; height: 12px; }
   <section class="block" id="share">
     <div class="wrap share">
       <div>
-        <h2 data-i18n="shareTitle">Made one? Your agent sends it in.</h2>
-        <p class="lead" data-i18n="shareLede">Submitting is a job for your coding agent. It checks the effect, sends it to the market and tells you how it went.</p>
+        <h2 data-i18n="shareTitle">Made one? Submit it in one click.</h2>
+        <p class="lead" data-i18n="shareLede">Press Submit on your effect in Exit. It checks the effect, sends it from your GitHub account and shows you the bot’s answer. Your coding agent can do it for you, too.</p>
         <ol>
-          <li><div><b data-i18n="s1t">Ask</b><span data-i18n="s1">Tell Claude Code, Codex or any coding agent which effect to submit.</span></div></li>
+          <li><div><b data-i18n="s1t">Press Submit</b><span data-i18n="s1">On your effect in Exit 0.4 or later. Sign in with GitHub once, or ask your coding agent.</span></div></li>
           <li><div><b data-i18n="s2t">Checked on a Mac</b><span data-i18n="s2">A bot compiles it, checks the first and last frames and the speed, and renders a preview.</span></div></li>
           <li><div><b data-i18n="s3t">Here for everyone</b><span data-i18n="s3">After a quick review it shows up on this page and in every Exit’s Market.</span></div></li>
         </ol>
         <div class="actions">
-          <button class="pill" type="button" id="copy" data-i18n="copy">Copy prompt</button>
+          <button class="pill" type="button" id="copy" data-i18n="copy">Copy a prompt for your agent</button>
           <a href="https://github.com/kadaliao/exit-effects/blob/main/AGENTS.md" data-i18n="guide">Read the agent guide</a>
         </div>
       </div>
@@ -380,12 +380,12 @@ const T = {
     f2t: "Always current", f2: "When an author improves an effect, the copy you installed updates itself.",
     f3t: "New ones, delivered", f3: "Turn on “Install new effects automatically” and new arrivals show up on their own.",
     installNote: "Needs Exit 0.3 or later on macOS 14 or later. Prefer files? Put any <code>.metal</code> from here into <code>~/Library/Application Support/Exit/Effects/</code>.",
-    shareTitle: "Made one? Your agent sends it in.",
-    shareLede: "Submitting is a job for your coding agent. It checks the effect, sends it to the market and tells you how it went.",
-    s1t: "Ask", s1: "Tell Claude Code, Codex or any coding agent which effect to submit.",
+    shareTitle: "Made one? Submit it in one click.",
+    shareLede: "Press Submit on your effect in Exit. It checks the effect, sends it from your GitHub account and shows you the bot’s answer. Your coding agent can do it for you, too.",
+    s1t: "Press Submit", s1: "On your effect in Exit 0.4 or later. Sign in with GitHub once, or ask your coding agent.",
     s2t: "Checked on a Mac", s2: "A bot compiles it, checks the first and last frames and the speed, and renders a preview.",
     s3t: "Here for everyone", s3: "After a quick review it shows up on this page and in every Exit’s Market.",
-    copy: "Copy prompt", copied: "Copied", guide: "Read the agent guide",
+    copy: "Copy a prompt for your agent", copied: "Copied", guide: "Read the agent guide",
     ask: "Submit my Paper Plane effect to the Exit market.",
     prompt: `Submit one of my Exit effects to the Exit effect market. Follow the guide at ${GUIDE}. My effects are in ~/Library/Application Support/Exit/Effects/; ask me which one if it isn’t clear.`,
     footer: "Effects are MIT licensed by their authors.", footExit: "Exit on GitHub", footRepo: "Market source",
@@ -411,12 +411,12 @@ const T = {
     f2t: "自动更新", f2: "作者改进了特效，你装的那份会自己更新。",
     f3t: "新品自动到", f3: "打开“自动安装新上架的特效”，新特效会自己出现。",
     installNote: "需要 Exit 0.3 及以上、macOS 14 及以上。喜欢手动？把这里任意一个 <code>.metal</code> 文件放进 <code>~/Library/Application Support/Exit/Effects/</code> 即可。",
-    shareTitle: "做好了？交给 agent 投稿。",
-    shareLede: "投稿是 coding agent 的活：它会检查特效、提交到市场，再把结果告诉你。",
-    s1t: "说一声", s1: "告诉 Claude Code、Codex 或任何 coding agent 要投哪个特效。",
+    shareTitle: "做好了？一键投稿。",
+    shareLede: "在 Exit 里点特效上的「投稿」：它会检查特效、用你的 GitHub 账号提交，再把机器人的回复显示给你。也可以交给 coding agent 代劳。",
+    s1t: "点投稿", s1: "在 Exit 0.4 及以上版本里点你的特效上的投稿按钮，第一次用 GitHub 登录；或者让 coding agent 去做。",
     s2t: "在 Mac 上检查", s2: "机器人会编译特效、检查首尾帧和性能，并渲染预览。",
     s3t: "所有人可见", s3: "审核通过后，它会出现在这个页面和每个人 Exit 的特效市场里。",
-    copy: "复制提示词", copied: "已复制", guide: "查看 agent 投稿指南",
+    copy: "复制给 agent 的提示词", copied: "已复制", guide: "查看 agent 投稿指南",
     ask: "把我的 Paper Plane 特效投稿到 Exit 特效市场。",
     prompt: `帮我把一个 Exit 特效投稿到 Exit 特效市场，按这份指南来：${GUIDE}。我的特效在 ~/Library/Application Support/Exit/Effects/ 里，不确定是哪个就问我。`,
     footer: "特效以 MIT 许可证发布，版权归各自作者。", footExit: "Exit 的 GitHub", footRepo: "市场源码",

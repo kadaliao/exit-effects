@@ -15,15 +15,15 @@ macOS app that plays an effect where a window closes. Each effect is one Metal f
 
 ## Submit an effect
 
-Ask your coding agent (Claude Code, Codex, …): *"Submit my Paper Plane effect to the Exit
-market."* [AGENTS.md](AGENTS.md) tells it what to do. In Exit, Settings → Market →
-**Copy Prompt** copies a request you can paste.
+In Exit 0.4.0 or later, press **Submit** (the paper plane) on your effect in Settings →
+Effects. Exit checks the effect on your Mac and opens a submission issue from your GitHub
+account (sign in once with a code on github.com, or a signed-in GitHub CLI is used); a bot
+checks it again, renders a preview and opens a pull request with you as the commit author,
+and Exit shows its answer on the effect's card. To fix something, press Submit again and the
+same issue is updated. After a review it's merged and appears in everyone's market.
 
-The agent runs `Exit --market submit <effect> --wait` (Exit 0.3.1 or later, with the GitHub
-CLI signed in). That checks the effect on your Mac and opens a submission issue; a bot checks
-it again, renders a preview and opens a pull request with you as the commit author. To fix
-something, the agent runs the command again and the same issue is updated. After a review
-it's merged and appears in everyone's market.
+Coding agents can do the same: ask Claude Code, Codex, … *"Submit my Paper Plane effect to
+the Exit market."* [AGENTS.md](AGENTS.md) tells it to run `Exit --market submit <effect> --wait`.
 
 A pull request that adds `effects/<id>.metal` works too.
 

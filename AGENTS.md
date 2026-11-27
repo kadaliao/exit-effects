@@ -3,16 +3,18 @@
 You are helping someone share an [Exit](https://github.com/kadaliao/exit) effect. Exit is a
 macOS app that plays a Metal shader where a window closes (or opens). This repository is
 its community market: every effect here is one `.metal` file, and it reaches every Exit
-user's Settings → Market after a review. People don't submit by hand; they ask you, and you
-use the one command below.
+user's Settings → Market after a review. People submit with the Submit button in Exit, or
+they ask you, and you use the one command below.
 
 ## What you need
 
 - **Exit 0.3.1 or later.** The binary is `/Applications/Exit.app/Contents/MacOS/Exit`
   (if it isn't there: `mdfind 'kMDItemCFBundleIdentifier == io.github.kadaliao.Exit'`).
   `Exit --version` prints the version; `brew upgrade --cask exit` updates it.
-- **The GitHub CLI, signed in.** Check with `gh auth status`. If it isn't signed in, ask the
-  person to run `gh auth login` themselves; never handle their credentials.
+- **A GitHub sign-in.** Either the GitHub CLI is signed in (`gh auth status`), or the person
+  signed in to GitHub inside Exit 0.4.0 or later (Settings → Effects → the paper-plane
+  button on one of their effects → Sign in with GitHub); the command uses whichever exists.
+  If neither, ask the person to do one of the two themselves; never handle their credentials.
 - **The effect.** People's own effects live in `~/Library/Application Support/Exit/Effects/`.
   `Exit --check` lists every effect Exit knows with its id. You can pass an id or a path.
 
@@ -51,7 +53,8 @@ How to write or fix an effect: the [authoring guide](https://raw.githubuserconte
 Exit --market submit <id or path/to/effect.metal> --wait
 ```
 
-It runs the checks above on this Mac, then opens an issue in this repository with `gh`.
+It runs the checks above on this Mac, then opens an issue in this repository from the
+person's GitHub account.
 The market's bot checks the effect again on a GitHub runner, renders a preview and opens a
 pull request with the person as commit author. `--wait` stays until the bot answers (about
 five minutes) and prints its report.
