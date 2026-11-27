@@ -1,0 +1,38 @@
+# Turns a submission issue (from the "Submit an effect" form) into a pull request.
+name: Submission
+on:
+  issues:
+    types: [opened, edited, reopened]
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+concurrency:
+  group: submission-${{ github.event.issue.number }}
+  cancel-in-progress: true
+jobs:
+  submit:
+    if: github.event.issue.state == 'open' && contains(github.event.issue.labels.*.name, 'submission')
+    runs-on: macos-15
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Get Exit
+        run: scripts/get-exit.sh
+      - name: Read and check the submission
+        id: sub
+        run: python3 scripts/submission.py read
+      - name: Install preview tools
+        if: steps.sub.outputs.compiled == 'true'
+        run: brew install --quiet ffmpeg gifski gifsicle
+      - name: Render the preview
+        if: steps.sub.outputs.compiled == 'true'
+        env:
+          EFFECT_ID: ${{ steps.sub.outputs.id }}
+        run: scripts/make-previews.sh build/preview "effects/$EFFECT_ID.metal"
+      - name: Open the pull request and reply
+        env:
+          EFFECT_ID: ${{ steps.sub.outputs.id }}
+        run: python3 scripts/submission.py publish "build/preview/$EFFECT_ID.gif"

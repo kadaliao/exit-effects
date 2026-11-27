@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exit Effects</title>
+<meta name="description" content="Community window animations for Exit, the macOS app that plays an effect when a window closes. Each one is a single Metal file.">
+<link rel="icon" href="icon.png">
+<style>
+  :root {
+    --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --muted: #6e6e73; --line: rgba(0,0,0,.08);
+    --accent: #0071e3; --accent-text: #fff; --chip: rgba(0,0,0,.05); --shadow: 0 1px 2px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #000; --card: #1c1c1e; --text: #f5f5f7; --muted: #98989d; --line: rgba(255,255,255,.1);
+      --accent: #2997ff; --chip: rgba(255,255,255,.08); --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
+         -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+  header { padding: 56px 0 28px; display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+  header img { width: 72px; height: 72px; }
+  header .t { flex: 1; min-width: 240px; }
+  h1 { font-size: 34px; line-height: 1.15; margin: 0 0 6px; letter-spacing: -.02em; }
+  .sub { color: var(--muted); margin: 0; font-size: 17px; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 980px;
+         background: var(--chip); color: var(--text); font-weight: 500; border: 0; font: inherit; cursor: pointer; }
+  .btn:hover { text-decoration: none; filter: brightness(.96); }
+  .btn.primary { background: var(--accent); color: var(--accent-text); }
+  .bar { display: flex; gap: 8px; align-items: center; margin: 8px 0 20px; flex-wrap: wrap; }
+  .bar .count { color: var(--muted); margin-right: auto; }
+  .seg { display: inline-flex; background: var(--chip); border-radius: 9px; padding: 2px; }
+  .seg button { border: 0; background: none; font: inherit; font-size: 13px; padding: 4px 12px; border-radius: 7px; color: var(--text); cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--card); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+  .card { background: var(--card); border-radius: 18px; overflow: hidden; box-shadow: var(--shadow);
+          border: 1px solid var(--line); display: flex; flex-direction: column; }
+  .card .pv { aspect-ratio: 4 / 3; background: linear-gradient(135deg, #3d5c8c, #785285); display: block; width: 100%; object-fit: cover; }
+  .card .pv.none { display: grid; place-items: center; color: #fff9; font-size: 13px; }
+  .card .body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .card h3 { margin: 0; font-size: 17px; display: flex; gap: 8px; align-items: baseline; }
+  .card h3 .by { font-weight: 400; color: var(--muted); font-size: 13px; margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50%; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; flex: 1; }
+  .meta { display: flex; gap: 6px; flex-wrap: wrap; font-size: 12px; }
+  .chip { background: var(--chip); border-radius: 6px; padding: 1px 7px; color: var(--muted); }
+  .links { display: flex; gap: 14px; font-size: 14px; margin-top: 4px; }
+  section.info { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 48px 0; }
+  section.info > div { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 20px 22px; }
+  section.info h2 { font-size: 20px; margin: 0 0 8px; }
+  section.info ol { margin: 0; padding-left: 20px; }
+  section.info li { margin: 4px 0; }
+  code { font: 13px ui-monospace, "SF Mono", Menlo, monospace; background: var(--chip); padding: 1px 5px; border-radius: 5px; word-break: break-all; }
+  .empty, .error { text-align: center; color: var(--muted); padding: 60px 0; }
+  footer { color: var(--muted); font-size: 13px; padding: 24px 0 48px; border-top: 1px solid var(--line); }
+  @media (max-width: 560px) { header { padding-top: 32px; } h1 { font-size: 28px; } .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="icon.png" alt="">
+    <div class="t">
+      <h1 data-i18n="title">Exit Effects</h1>
+      <p class="sub" data-i18n="tagline">Window animations made by the community for Exit. Each one is a single Metal file.</p>
+    </div>
+    <div class="actions">
+      <a class="btn primary" href="https://github.com/kadaliao/exit" data-i18n="getExit">Get Exit</a>
+      <a class="btn" href="https://github.com/kadaliao/exit-effects/issues/new?template=submit-effect.yml" data-i18n="submit">Submit an effect</a>
+      <button class="btn" id="lang" type="button">中文</button>
+    </div>
+  </header>
+
+  <div class="bar">
+    <span class="count" id="count"></span>
+    <div class="seg" role="group" id="filter">
+      <button type="button" data-f="all" aria-pressed="true" data-i18n="all">All</button>
+      <button type="button" data-f="exit" aria-pressed="false" data-i18n="closing">Closing</button>
+      <button type="button" data-f="open" aria-pressed="false" data-i18n="opening">Opening</button>
+    </div>
+  </div>
+  <div class="grid" id="grid"></div>
+
+  <section class="info">
+    <div id="install">
+      <h2 data-i18n="installTitle">Install</h2>
+      <ol>
+        <li data-i18n-html="install1">In Exit 0.3 or later: <b>Settings → Market</b>, then <b>Install</b>. Installed effects update themselves.</li>
+        <li data-i18n-html="install2">Or download the <code>.metal</code> file into <code>~/Library/Application Support/Exit/Effects/</code>. It shows up right away.</li>
+      </ol>
+    </div>
+    <div id="contribute">
+      <h2 data-i18n="submitTitle">Submit yours</h2>
+      <ol>
+        <li data-i18n-html="submit1">Write one with the <a href="https://github.com/kadaliao/exit/blob/main/docs/EFFECTS.md">authoring guide</a>, or let Exit's AI write it.</li>
+        <li data-i18n-html="submit2">In Exit, click <b>Submit</b> on your effect, or <a href="https://github.com/kadaliao/exit-effects/issues/new?template=submit-effect.yml">open a submission</a> and paste the code. Pull requests work too.</li>
+        <li data-i18n-html="submit3">A bot compiles it, checks the first and last frames and the speed, and renders a preview. After a quick review it appears here.</li>
+      </ol>
+    </div>
+  </section>
+
+  <footer>
+    <span data-i18n-html="footer">Effects are MIT licensed by their authors. <a href="https://github.com/kadaliao/exit-effects">Source on GitHub</a></span>
+    · <a href="index.json">index.json</a>
+  </footer>
+</div>
+
+<script>
+const T = {
+  en: {
+    title: "Exit Effects", tagline: "Window animations made by the community for Exit. Each one is a single Metal file.",
+    getExit: "Get Exit", submit: "Submit an effect", all: "All", closing: "Closing", opening: "Opening",
+    count: n => n === 1 ? "1 effect" : `${n} effects`, by: a => `by ${a}`, download: "Download", source: "Source",
+    noPreview: "No preview yet", empty: "No effects yet. Be the first to submit one!", error: "Couldn’t load the effects.",
+    needs: v => `Exit ${v}+`, ev: { close: "Close", quit: "Quit", minimize: "Minimize", open: "Open" },
+    installTitle: "Install", submitTitle: "Submit yours",
+    install1: "In Exit 0.3 or later: <b>Settings → Market</b>, then <b>Install</b>. Installed effects update themselves.",
+    install2: "Or download the <code>.metal</code> file into <code>~/Library/Application Support/Exit/Effects/</code>. It shows up right away.",
+    submit1: "Write one with the <a href=\"https://github.com/kadaliao/exit/blob/main/docs/EFFECTS.md\">authoring guide</a>, or let Exit’s AI write it.",
+    submit2: "In Exit, click <b>Submit</b> on your effect, or <a href=\"https://github.com/kadaliao/exit-effects/issues/new?template=submit-effect.yml\">open a submission</a> and paste the code. Pull requests work too.",
+    submit3: "A bot compiles it, checks the first and last frames and the speed, and renders a preview. After a quick review it appears here.",
+    footer: "Effects are MIT licensed by their authors. <a href=\"https://github.com/kadaliao/exit-effects\">Source on GitHub</a>",
+  },
+  zh: {
+    title: "Exit 特效市场", tagline: "社区为 Exit 做的窗口特效，每个都是一个 Metal 文件。",
+    getExit: "下载 Exit", submit: "投稿特效", all: "全部", closing: "关闭", opening: "打开",
+    count: n => `共 ${n} 个特效`, by: a => `作者 ${a}`, download: "下载", source: "源码",
+    noPreview: "还没有预览", empty: "还没有特效，来投第一个吧！", error: "特效列表加载失败。",
+    needs: v => `需要 Exit ${v}+`, ev: { close: "关闭", quit: "退出", minimize: "最小化", open: "打开" },
+    installTitle: "安装", submitTitle: "投稿",
+    install1: "Exit 0.3 及以上：<b>设置 → 特效市场</b>，点<b>安装</b>。装好的特效会自动更新。",
+    install2: "或者把 <code>.metal</code> 文件下载到 <code>~/Library/Application Support/Exit/Effects/</code>，马上就能用。",
+    submit1: "照着<a href=\"https://github.com/kadaliao/exit/blob/main/docs/EFFECTS.zh-CN.md\">编写指南</a>写一个，或者让 Exit 的 AI 帮你写。",
+    submit2: "在 Exit 里点特效上的<b>投稿</b>，或者<a href=\"https://github.com/kadaliao/exit-effects/issues/new?template=submit-effect.yml\">新建投稿</a>粘贴代码。也可以直接提 PR。",
+    submit3: "机器人会编译、检查首尾帧和性能，并渲染预览图。审核通过后就会出现在这里。",
+    footer: "特效以 MIT 许可证发布，版权归各自作者。<a href=\"https://github.com/kadaliao/exit-effects\">GitHub 上的源码</a>",
+  },
+};
+let lang = (() => {
+  try { const s = localStorage.getItem("lang"); if (s === "en" || s === "zh") return s; } catch (e) {}
+  return (navigator.language || "").toLowerCase().startsWith("zh") ? "zh" : "en";
+})();
+let filter = "all", data = null, failed = false;
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c]));
+const pick = (e, k) => (lang === "zh" && e[k + "_zh"]) || e[k] || "";
+
+function applyText() {
+  const t = T[lang];
+  document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+  document.title = t.title;
+  document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t[el.dataset.i18n]; });
+  document.querySelectorAll("[data-i18n-html]").forEach(el => { el.innerHTML = t[el.dataset.i18nHtml]; });
+  $("#lang").textContent = lang === "zh" ? "English" : "中文";
+  render();
+}
+
+function render() {
+  const t = T[lang], grid = $("#grid");
+  if (failed) { grid.innerHTML = `<div class="error">${t.error}</div>`; return; }
+  if (!data) return;
+  const list = data.effects.filter(e => filter === "all" ? true
+    : filter === "open" ? e.events.includes("open") : e.events.some(v => v !== "open"));
+  $("#count").textContent = t.count(list.length);
+  if (!list.length) { grid.innerHTML = `<div class="empty">${t.empty}</div>`; return; }
+  grid.innerHTML = list.map(e => `
+    <article class="card">
+      ${e.preview ? `<img class="pv" loading="lazy" src="${esc(e.preview)}" alt="${esc(pick(e, "name"))}">`
+                  : `<div class="pv none">${t.noPreview}</div>`}
+      <div class="body">
+        <h3>${esc(pick(e, "name"))}${e.author ? `<span class="by">${esc(t.by(e.author))}</span>` : ""}</h3>
+        <p>${esc(pick(e, "description"))}</p>
+        <div class="meta">
+          ${e.events.map(v => `<span class="chip">${t.ev[v] || esc(v)}</span>`).join("")}
+          <span class="chip">${e.duration}s</span>
+          ${e.requires ? `<span class="chip">${esc(t.needs(e.requires))}</span>` : ""}
+        </div>
+        <div class="links">
+          <a href="${esc(e.file)}" download="${esc(e.id)}.metal">${t.download}</a>
+          <a href="${esc(e.source_url)}">${t.source}</a>
+        </div>
+      </div>
+    </article>`).join("");
+}
+
+$("#lang").addEventListener("click", () => {
+  lang = lang === "zh" ? "en" : "zh";
+  try { localStorage.setItem("lang", lang); } catch (e) {}
+  applyText();
+});
+$("#filter").addEventListener("click", ev => {
+  const b = ev.target.closest("button"); if (!b) return;
+  filter = b.dataset.f;
+  document.querySelectorAll("#filter button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  render();
+});
+
+fetch("index.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : Promise.reject(r.status))
+  .then(j => { data = j; data.effects.sort((a, b) => (b.added || "").localeCompare(a.added || "") || a.name.localeCompare(b.name)); })
+  .catch(() => { failed = true; })
+  .finally(render);
+applyText();
+</script>
+</body>
+</html>

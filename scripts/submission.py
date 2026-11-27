@@ -1,0 +1,206 @@
+#!/usr/bin/env python3
+"""Turns a submission issue into a pull request. Run by .github/workflows/submission.yml.
+
+    python3 scripts/submission.py read [event.json]
+        Reads the issue (default: $GITHUB_EVENT_PATH), writes effects/<id>.metal and checks it.
+        Saves its findings to build/submission.json and prints outputs for the workflow:
+        id, compiled (true/false), ok (true/false).
+    python3 scripts/submission.py publish [preview.gif]
+        Uploads the preview, opens or updates the pull request when the checks pass (closes
+        it when they don't), labels the issue and posts the report as a comment.
+
+The issue body is untrusted text: it is only ever passed as data, never to a shell.
+"""
+
+import base64
+import json
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+import check
+import fx
+
+STATE = fx.ROOT / "build/submission.json"
+ASSETS = "review-assets"
+BOT = ("github-actions[bot]", "41898282+github-actions[bot]@users.noreply.github.com")
+LABEL_OK, LABEL_FIX = "checks passed", "needs changes"
+
+
+def sections(body: str) -> dict:
+    """Issue-form answers by heading, lowercased: {'effect id · 特效 id': '...'}."""
+    out, cur = {}, None
+    for line in body.replace("\r\n", "\n").split("\n"):
+        m = re.match(r"^###\s+(.+?)\s*$", line)
+        if m:
+            cur = m.group(1).lower()
+            out[cur] = []
+        elif cur is not None:
+            out[cur].append(line)
+    return {k: "\n".join(v).strip() for k, v in out.items()}
+
+
+def field(sec: dict, prefix: str) -> str:
+    for k, v in sec.items():
+        if k.startswith(prefix):
+            return "" if v == "_No response_" else v
+    return ""
+
+
+def code_of(text: str) -> str:
+    lines = text.split("\n")
+    fences = [i for i, l in enumerate(lines) if l.strip().startswith("```")]
+    if len(fences) >= 2:
+        lines = lines[fences[0] + 1:fences[-1]]
+    return "\n".join(lines).strip("\n") + "\n"
+
+
+def with_author(source: str, login: str) -> str:
+    """Adds `// @author <login>` after the name lines when the header has no author."""
+    if fx.parse_header(source).get("author"):
+        return source
+    lines = source.split("\n")
+    at = 0
+    for i, l in enumerate(lines[:60]):
+        if re.match(r"^\s*//\s*@name(\.zh)?\b", l):
+            at = i + 1
+    lines.insert(at, f"// @author {login}")
+    return "\n".join(lines)
+
+
+def output(**kv):
+    path = os.environ.get("GITHUB_OUTPUT")
+    text = "".join(f"{k}={v}\n" for k, v in kv.items())
+    if path:
+        with open(path, "a") as f:
+            f.write(text)
+    print(text, end="")
+
+
+def read(event_path: str):
+    event = json.loads(Path(event_path).read_text())
+    issue = event["issue"]
+    login = issue["user"]["login"]
+    sec = sections(issue.get("body") or "")
+    source = code_of(field(sec, "shader source"))
+    # "Paper Plane" or "paper_plane.metal" becomes paper-plane; an empty or all-Chinese ID falls back to @name.
+    raw_id = field(sec, "effect id").strip().lower().removesuffix(".metal")
+    eid = fx.slug(raw_id) or fx.slug(fx.parse_header(source).get("name", ""))
+
+    state = {"issue": issue["number"], "login": login, "user_id": issue["user"]["id"], "id": eid,
+             "ok": False, "compiled": False, "report": "", "replaces": None}
+    fx.ROOT.joinpath("build").mkdir(exist_ok=True)
+
+    if not re.search(r"\beffect\s*\(", source):
+        state["report"] = ("❌ I couldn't find the shader in this issue. Paste the whole `.metal` file into "
+                           "**Shader source**. · 没有找到着色器代码，请把整个 `.metal` 文件粘贴到 **Shader source** 里。\n")
+    elif not fx.ID_RE.match(eid) or eid == "prelude":
+        state["report"] = (f"❌ `{eid or '(empty)'}` can't be a file name. Set **Effect ID** to 2–40 lowercase letters, "
+                           "digits and dashes, like `paper-plane`. · 特效 ID 只能用小写字母、数字和短横线，例如 `paper-plane`。\n")
+    else:
+        path = fx.EFFECTS / f"{eid}.metal"
+        if path.exists():
+            old = fx.parse_header(path.read_text())
+            state["replaces"] = old.get("author") or "?"
+        fx.EFFECTS.mkdir(exist_ok=True)
+        path.write_text(with_author(source, login))
+        result = check.check(path, fx.builtin_ids(), fx.exit_version())
+        if state["replaces"] is not None:
+            result.add(None, "Update · 更新", f"replaces the existing `{eid}` by {state['replaces']}")
+        state.update(ok=result.ok, compiled=result.compiled, name=result.meta.get("name") or eid,
+                     report=check.markdown([result], fx.exit_version()))
+    STATE.write_text(json.dumps(state))
+    output(id=state["id"] if fx.ID_RE.match(state["id"] or "") else "",
+           compiled=str(state["compiled"]).lower(), ok=str(state["ok"]).lower())
+
+
+def gh(*args, check_=True, input_=None) -> str:
+    r = subprocess.run(["gh", *args], capture_output=True, text=True, input=input_)
+    if check_ and r.returncode != 0:
+        raise SystemExit(f"gh {' '.join(args[:3])} failed: {r.stderr}")
+    return r.stdout.strip()
+
+
+def git(*args):
+    subprocess.run(["git", *args], cwd=fx.ROOT, check=True)
+
+
+def upload_preview(gif: Path, state: dict):
+    """Puts the preview on the review-assets branch so the comment can show it. Returns its URL."""
+    repo = os.environ["GITHUB_REPOSITORY"]
+    if subprocess.run(["gh", "api", f"repos/{repo}/branches/{ASSETS}", "--silent"], capture_output=True).returncode != 0:
+        main_sha = gh("api", f"repos/{repo}/git/ref/heads/main", "--jq", ".object.sha")
+        gh("api", "-X", "POST", f"repos/{repo}/git/refs", "-f", f"ref=refs/heads/{ASSETS}", "-f", f"sha={main_sha}")
+    sha = fx.sha256((fx.EFFECTS / f"{state['id']}.metal").read_bytes())[:8]
+    path = f"review/{state['issue']}/{state['id']}-{sha}.gif"
+    existing = gh("api", f"repos/{repo}/contents/{path}?ref={ASSETS}", "--jq", ".sha", check_=False)
+    body = {"message": f"Preview for #{state['issue']}", "branch": ASSETS,
+            "content": base64.b64encode(gif.read_bytes()).decode()}
+    if re.fullmatch(r"[0-9a-f]{40}", existing or ""):
+        body["sha"] = existing
+    gh("api", "-X", "PUT", f"repos/{repo}/contents/{path}", "--input", "-", input_=json.dumps(body))
+    return f"https://raw.githubusercontent.com/{repo}/{ASSETS}/{path}"
+
+
+def publish(gif: str | None):
+    state = json.loads(STATE.read_text())
+    repo = os.environ["GITHUB_REPOSITORY"]
+    n = state["issue"]
+    branch = f"submission/{n}"
+    preview = upload_preview(Path(gif), state) if gif and Path(gif).exists() else None
+
+    open_prs = json.loads(gh("pr", "list", "--head", branch, "--state", "open", "--json", "number") or "[]")
+    pr = open_prs[0]["number"] if open_prs else None
+    if state["ok"]:
+        login, uid = state["login"], state["user_id"]
+        git("checkout", "-B", branch, "origin/main")
+        git("add", f"effects/{state['id']}.metal")
+        git("-c", f"user.name={BOT[0]}", "-c", f"user.email={BOT[1]}", "commit", "--allow-empty",
+            "--author", f"{login} <{uid}+{login}@users.noreply.github.com>",
+            "-m", f"{'Update' if state['replaces'] is not None else 'Add'} {state['name']}", "-m", f"Submitted in #{n}.")
+        git("push", "-f", "origin", f"{branch}:{branch}")
+        body = (f"Submitted by @{login} in #{n}.\n\nCloses #{n}\n\n"
+                + (f"![preview]({preview})\n\n" if preview else "") + state["report"])
+        if pr:
+            gh("pr", "edit", str(pr), "--body", body)
+        else:
+            verb = "Update" if state["replaces"] is not None else "Add"
+            url = gh("pr", "create", "--base", "main", "--head", branch,
+                     "--title", f"{verb} effect: {state['name']}", "--body", body)
+            pr = int(url.rstrip("/").split("/")[-1])
+    elif pr:
+        gh("pr", "close", str(pr), "--comment", f"The checks in #{n} fail now; closing until they pass again.")
+        pr = None
+
+    if state["ok"]:
+        status = (f"✅ All checks passed. Pull request: #{pr}. The maintainer will take a look soon; "
+                  "you can still edit this issue to change the code. · 检查全部通过，已提交 PR，等待审核；"
+                  "需要改代码的话直接编辑这个 issue 即可。")
+    else:
+        status = ("❌ Some checks failed. Edit this issue (**···** → **Edit**) to fix the code, and the checks run "
+                  "again. · 有检查没通过。编辑这个 issue（**···** → **Edit**）改好代码后会自动重新检查。")
+    comment = "\n\n".join(x for x in [
+        "Thanks for the submission! · 感谢投稿！",
+        f"![preview]({preview})" if preview else None,
+        state["report"].strip(), status] if x)
+    edited = subprocess.run(["gh", "issue", "comment", str(n), "--edit-last", "--body", comment],
+                            capture_output=True, text=True).returncode == 0
+    if not edited:
+        gh("issue", "comment", str(n), "--body", comment)
+    add, remove = (LABEL_OK, LABEL_FIX) if state["ok"] else (LABEL_FIX, LABEL_OK)
+    gh("issue", "edit", str(n), "--add-label", add, "--remove-label", remove, check_=False)
+    print(f"issue #{n}: {'ok' if state['ok'] else 'needs changes'}" + (f", PR #{pr}" if pr else ""))
+    if not state["ok"]:
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    mode = sys.argv[1] if len(sys.argv) > 1 else ""
+    if mode == "read":
+        read(sys.argv[2] if len(sys.argv) > 2 else os.environ["GITHUB_EVENT_PATH"])
+    elif mode == "publish":
+        publish(sys.argv[2] if len(sys.argv) > 2 else None)
+    else:
+        sys.exit(__doc__)

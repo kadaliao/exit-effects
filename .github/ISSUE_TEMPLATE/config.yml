@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Problems with the Exit app · Exit 本身的问题
+    url: https://github.com/kadaliao/exit/issues
+    about: Bugs and ideas for Exit itself go to the app's repository. · App 的 bug 和建议请提到 Exit 仓库。
