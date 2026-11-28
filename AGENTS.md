@@ -62,7 +62,7 @@ five minutes) and prints its report.
 
 | Option | |
 |---|---|
-| `--notes "…"` | a message for the reviewer |
+| `--notes "…"` | a message for the maintainer |
 | `--dry-run` | print the issue instead of sending it |
 | `--force` | send it even though the local checks fail, to get the bot's report |
 
