@@ -8,7 +8,8 @@
         id, compiled (true/false), ok (true/false).
     python3 scripts/submission.py publish [preview.gif]
         Uploads the preview, opens or updates the pull request when the checks pass (closes
-        it when they don't), labels the issue and posts the report as a comment.
+        it when they don't) and merges it right away when nobody else's effect is replaced,
+        labels the issue and posts the report as a comment.
 
 The issue body is untrusted text: it is only ever passed as data, never to a shell.
 """
@@ -19,6 +20,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import check
@@ -145,6 +147,30 @@ def upload_preview(gif: Path, state: dict):
     return f"https://raw.githubusercontent.com/{repo}/{ASSETS}/{path}"
 
 
+def own_effect(state: dict) -> bool:
+    """A new effect, or an update by the person whose submission added it: no review needed.
+    Replacing someone else's effect (or one added by hand) waits for the maintainer, since
+    installed effects update themselves on every Mac."""
+    if state["replaces"] is None:
+        return True
+    r = subprocess.run(["git", "log", "origin/main", "--diff-filter=A", "-1", "--format=%ae", "--",
+                        f"effects/{state['id']}.metal"], cwd=fx.ROOT, capture_output=True, text=True)
+    return r.stdout.strip().startswith(f"{state['user_id']}+")
+
+
+def merge(repo: str, pr: int) -> bool:
+    """Rebase-merges the pull request (keeping the submitter as commit author). GitHub needs a
+    moment to work out whether a new pull request can be merged, so this tries a few times."""
+    for attempt in range(6):
+        r = subprocess.run(["gh", "api", "-X", "PUT", f"repos/{repo}/pulls/{pr}/merge", "-f", "merge_method=rebase"],
+                           capture_output=True, text=True)
+        if r.returncode == 0:
+            return True
+        print(f"merge #{pr}, try {attempt + 1}: {r.stderr.strip() or r.stdout.strip()}")
+        time.sleep(10)
+    return False
+
+
 def publish(gif: str | None):
     state = json.loads(STATE.read_text())
     repo = os.environ["GITHUB_REPOSITORY"]
@@ -175,10 +201,28 @@ def publish(gif: str | None):
         gh("pr", "close", str(pr), "--comment", f"The checks in #{n} fail now; closing until they pass again.")
         pr = None
 
-    if state["ok"]:
-        status = (f"✅ All checks passed. Pull request: #{pr}. The maintainer will take a look soon. To change "
-                  "the effect, press Submit in Exit again (or run `Exit --market submit`): it updates this issue. · "
-                  "检查全部通过，已提交 PR，等待审核。要修改的话在 Exit 里再点一次投稿（或再运行一次 "
+    own = state["ok"] and own_effect(state)
+    merged = own and merge(repo, pr)
+    if merged:
+        gh("api", "-X", "DELETE", f"repos/{repo}/git/refs/heads/{branch}", check_=False)
+        # Merging with the workflow's token doesn't start publish.yml by itself; a dispatch does.
+        gh("workflow", "run", "publish.yml", "--ref", "main", check_=False)
+        # "Closes #n" normally did this already. Closed before the reply, so Exit sees "In the market" right away.
+        gh("issue", "close", str(n), "--reason", "completed", check_=False)
+
+    if merged:
+        status = (f"✅ All checks passed. Merged in #{pr}: the effect reaches everyone's Market within a few "
+                  "minutes. To change it later, press Submit in Exit again (or run `Exit --market submit`). · "
+                  f"检查全部通过，已通过 #{pr} 合并，几分钟后就会出现在所有人的特效市场里。以后要修改，在 Exit "
+                  "里再点一次投稿（或再运行一次 `Exit --market submit`）即可。")
+    elif state["ok"]:
+        why, why_zh = (("It replaces an effect someone else added, so the maintainer takes a look first.",
+                        "它会替换别人添加的特效，需要维护者先看一下。") if not own else
+                       ("It couldn't be merged automatically, so the maintainer takes a look.",
+                        "没能自动合并，维护者会来处理。"))
+        status = (f"✅ All checks passed. Pull request: #{pr}. {why} To change the effect, press Submit in Exit "
+                  "again (or run `Exit --market submit`): it updates this issue. · "
+                  f"检查全部通过，已提交 PR。{why_zh}要修改的话在 Exit 里再点一次投稿（或再运行一次 "
                   "`Exit --market submit`），会更新这个 issue。")
     else:
         status = ("❌ Some checks failed. Fix the effect and press Submit in Exit again (or run "
@@ -194,7 +238,8 @@ def publish(gif: str | None):
         gh("issue", "comment", str(n), "--body", comment)
     add, remove = (LABEL_OK, LABEL_FIX) if state["ok"] else (LABEL_FIX, LABEL_OK)
     gh("issue", "edit", str(n), "--add-label", f"{LABEL_SUBMISSION},{add}", "--remove-label", remove, check_=False)
-    print(f"issue #{n}: {'ok' if state['ok'] else 'needs changes'}" + (f", PR #{pr}" if pr else ""))
+    print(f"issue #{n}: {'ok' if state['ok'] else 'needs changes'}" + (f", PR #{pr}" if pr else "")
+          + (" merged" if merged else ""))
     if not state["ok"]:
         sys.exit(1)
 

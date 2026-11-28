@@ -17,7 +17,8 @@
 在 Exit 0.4.0 及以上版本里，打开“设置 → 特效”，点你的特效上的**投稿**按钮（纸飞机）。Exit 会先在你的
 Mac 上检查特效，再用你的 GitHub 账号提交一个投稿 issue（第一次在 github.com 上输入验证码登录，已登录
 GitHub CLI 的话直接用它）；机器人会再检查一遍、渲染预览，并以你为提交作者自动开 PR，结果显示在特效卡片上。
-要修改的话，再点一次投稿，会更新同一个 issue。审核合并后，所有人的特效市场里都会出现它。
+要修改的话，再点一次投稿，会更新同一个 issue。检查通过后 PR 会自动合并，几分钟内所有人的特效市场里都会出现它。
+只有替换别人特效的投稿需要等维护者审核。
 
 coding agent 也能代劳：对 Claude Code、Codex 等说 *“把我的 Paper Plane 特效投稿到 Exit 特效市场。”*
 [AGENTS.md](AGENTS.md) 会让它运行 `Exit --market submit <特效> --wait`。
@@ -49,7 +50,7 @@ Exit.app/Contents/MacOS/Exit --validate --only my-effect
 
 | | |
 |---|---|
-| [`submission.yml`](.github/workflows/submission.yml) | 把投稿 issue 变成检查过的 PR，评论里附预览图 |
+| [`submission.yml`](.github/workflows/submission.yml) | 把投稿 issue 变成检查过的 PR，评论里附预览图；检查通过就合并 |
 | [`check.yml`](.github/workflows/check.yml) | 检查 PR 改动的特效 |
 | [`publish.yml`](.github/workflows/publish.yml) | 每次合并后生成 `index.json`、为新增或修改的特效渲染预览，并把站点发布到 `gh-pages` 分支 |
 

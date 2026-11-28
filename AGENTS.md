@@ -3,7 +3,7 @@
 You are helping someone share an [Exit](https://github.com/kadaliao/exit) effect. Exit is a
 macOS app that plays a Metal shader where a window closes (or opens). This repository is
 its community market: every effect here is one `.metal` file, and it reaches every Exit
-user's Settings → Market after a review. People submit with the Submit button in Exit, or
+user's Settings → Market as soon as it passes the checks. People submit with the Submit button in Exit, or
 they ask you, and you use the one command below.
 
 ## What you need
@@ -72,11 +72,12 @@ reasons are printed), `2` the effect or the arguments weren't found.
 
 - **The bot found problems:** fix the file and run the same command again. It updates the
   same issue and the checks run again. Don't open a new issue or pull request by hand.
-- **Accepted:** the maintainer reviews the pull request. Once it's merged, the effect is on
+- **Accepted:** the bot merges the pull request, and the effect is on
   <https://kadaliao.github.io/exit-effects/> and in everyone's Settings → Market within
-  minutes. Tell the person the issue link so they can follow along.
+  minutes. A submission that replaces someone else's effect waits for the maintainer instead;
+  the bot's report says which happened. Tell the person the issue link.
 - **An update to an effect that's already in the market:** submit the new version the same
   way; the pull request replaces the old file.
 
-Prefer a pull request? Add `effects/<id>.metal` to a fork and open one; the same checks run
-on it. The command above is simpler and gives you the report directly.
+Prefer a pull request? Add `effects/<id>.metal` to a fork and open one; the same checks run,
+but the maintainer merges it by hand. The command above is quicker and gives you the report directly.

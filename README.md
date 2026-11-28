@@ -20,12 +20,14 @@ Effects. Exit checks the effect on your Mac and opens a submission issue from yo
 account (sign in once with a code on github.com, or a signed-in GitHub CLI is used); a bot
 checks it again, renders a preview and opens a pull request with you as the commit author,
 and Exit shows its answer on the effect's card. To fix something, press Submit again and the
-same issue is updated. After a review it's merged and appears in everyone's market.
+same issue is updated. Once the checks pass, the pull request is merged and the effect appears in
+everyone's market within minutes. Only a submission that replaces someone else's effect waits for
+the maintainer.
 
 Coding agents can do the same: ask Claude Code, Codex, … *"Submit my Paper Plane effect to
 the Exit market."* [AGENTS.md](AGENTS.md) tells it to run `Exit --market submit <effect> --wait`.
 
-A pull request that adds `effects/<id>.metal` works too.
+A pull request that adds `effects/<id>.metal` works too; it's merged after a review.
 
 ### What the checks look for
 
@@ -53,7 +55,7 @@ By submitting you confirm you wrote the effect (or may share it) and release it 
 
 | | |
 |---|---|
-| [`submission.yml`](.github/workflows/submission.yml) | turns a submission issue from `Exit --market submit` into a checked pull request, with the preview in the comment |
+| [`submission.yml`](.github/workflows/submission.yml) | turns a submission issue from `Exit --market submit` into a checked pull request, with the preview in the comment, and merges it when the checks pass |
 | [`check.yml`](.github/workflows/check.yml) | checks effects changed by a pull request |
 | [`publish.yml`](.github/workflows/publish.yml) | on every merge: builds `index.json`, renders previews for new or changed effects and publishes the site to the `gh-pages` branch |
 
