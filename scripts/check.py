@@ -44,6 +44,15 @@ class Result:
         return ok
 
 
+def twin(source: str, own_id: str) -> Path | None:
+    """Another effect in the market with the same code (see fx.shape), if there is one."""
+    shape = fx.shape(source)
+    for other in sorted(fx.EFFECTS.glob("*.metal")):
+        if other.stem != own_id and fx.shape(other.read_text(errors="replace")) == shape:
+            return other
+    return None
+
+
 def check(path: Path, builtins: set, version: str) -> Result:
     r = Result(path)
     data = path.read_bytes()
@@ -95,6 +104,15 @@ def check(path: Path, builtins: set, version: str) -> Result:
             r.add(True, "Requires · 版本", f"Exit {need} or later")
     if re.search(r"^\s*#\s*(include|import)\b", source, re.M):
         r.add(False, "Includes · 引用", "remove `#include` / `#import`: the prelude already has everything")
+    same = twin(source, r.id)
+    if same:
+        its = fx.parse_header(same.read_text(errors="replace"))
+        r.add(False, "Original · 原创",
+              f"the same code as `{same.stem}` (**{its.get('name') or same.stem}** by {its.get('author') or '?'}): only "
+              f"comments or numbers differ, and the market keeps one copy of each effect. To update `{same.stem}`, "
+              f"submit it as `{same.stem}.metal`")
+    else:
+        r.add(True, "Original · 原创", "no other effect in the market has this code")
 
     # Compile, behave, and stay fast, in a folder that holds only this effect.
     with tempfile.TemporaryDirectory() as tmp:

@@ -60,6 +60,18 @@ def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+NUMBER = re.compile(r"(?<![\w.])(?:0[xX][0-9a-fA-F]+|\d+\.?\d*(?:[eE][+-]?\d+)?|\.\d+(?:[eE][+-]?\d+)?)[fFhHuUlL]*")
+
+
+def shape(source: str) -> str:
+    """A fingerprint of the shader's code without its comments (the header too), its whitespace
+    and the values of its numbers. A copy under another name, or one with tuned constants, has
+    the same shape; changing what the code does gives another."""
+    code = re.sub(r"/\*.*?\*/", " ", source, flags=re.S)
+    code = re.sub(r"//[^\n]*", " ", code)
+    return sha256(re.sub(r"\s+", "", NUMBER.sub("0", code)).encode())
+
+
 def version_tuple(v: str) -> tuple:
     return tuple(int(re.match(r"\d*", p).group() or 0) for p in v.split("."))
 

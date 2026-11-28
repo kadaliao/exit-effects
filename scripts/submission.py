@@ -4,12 +4,14 @@
 
     python3 scripts/submission.py read [event.json]
         Reads the issue (default: $GITHUB_EVENT_PATH), writes effects/<id>.metal and checks it.
+        An effect's name belongs to the GitHub account that first submitted it: the same name
+        from that account is an update, from anyone else it fails the checks.
         Saves its findings to build/submission.json and prints outputs for the workflow:
         id, compiled (true/false), ok (true/false).
     python3 scripts/submission.py publish [preview.gif]
         Uploads the preview, opens or updates the pull request when the checks pass (closes
-        it when they don't) and merges it right away when nobody else's effect is replaced,
-        labels the issue and posts the report as a comment.
+        it when they don't) and merges it right away, labels the issue and posts the report
+        as a comment.
 
 The issue body is untrusted text: it is only ever passed as data, never to a shell.
 """
@@ -73,6 +75,16 @@ def with_author(source: str, login: str) -> str:
     return "\n".join(lines)
 
 
+def owns(eid: str, login: str, uid: int) -> bool:
+    """Whether this GitHub account put effect `eid` in the market. The commit that added the file
+    says so: publish() writes the submitter's account id into its author. Effects added by hand,
+    with some other author, are the repository owner's."""
+    email = subprocess.run(["git", "log", "--diff-filter=A", "-1", "--format=%ae", "--", f"effects/{eid}.metal"],
+                           cwd=fx.ROOT, capture_output=True, text=True).stdout.strip()
+    m = re.fullmatch(r"(\d+)\+.+@users\.noreply\.github\.com", email)
+    return int(m.group(1)) == uid if m else login == os.environ.get("GITHUB_REPOSITORY_OWNER")
+
+
 def output(**kv):
     path = os.environ.get("GITHUB_OUTPUT")
     text = "".join(f"{k}={v}\n" for k, v in kv.items())
@@ -104,14 +116,24 @@ def read(event_path: str):
                            "digits and dashes, like `paper-plane.metal`. · 文件名只能用小写字母、数字和短横线，例如 `paper-plane.metal`。\n")
     else:
         path = fx.EFFECTS / f"{eid}.metal"
+        taken = None   # the name is someone else's effect: (its author, whether this is the same code)
         if path.exists():
-            old = fx.parse_header(path.read_text())
-            state["replaces"] = old.get("author") or "?"
+            old = path.read_text()
+            by = fx.parse_header(old).get("author") or "?"
+            if owns(eid, login, issue["user"]["id"]):
+                state["replaces"] = by
+            else:
+                taken = (by, fx.shape(old) == fx.shape(source))
         fx.EFFECTS.mkdir(exist_ok=True)
         path.write_text(with_author(source, login))
         result = check.check(path, fx.builtin_ids(), fx.exit_version())
-        if state["replaces"] is not None:
-            result.add(None, "Update · 更新", f"replaces the existing `{eid}` by {state['replaces']}")
+        if taken:
+            result.add(False, "Name · 名称", f"`{eid}` is already an effect by {taken[0]} in the market"
+                       + (", and this is the same code: the market keeps one copy of each effect" if taken[1] else
+                          ". To submit yours as a new effect, give the file another name (and its `@name` too)")
+                       + f" · `{eid}` 已经是 {taken[0]} 的特效" + ("，而且代码相同" if taken[1] else "，要作为新特效投稿请给文件换个名字"))
+        elif state["replaces"] is not None:
+            result.add(None, "Update · 更新", f"a new version of your `{eid}`")
         state.update(ok=result.ok, compiled=result.compiled, name=result.meta.get("name") or eid,
                      report=check.markdown([result], fx.exit_version()))
     STATE.write_text(json.dumps(state))
@@ -145,17 +167,6 @@ def upload_preview(gif: Path, state: dict):
         body["sha"] = existing
     gh("api", "-X", "PUT", f"repos/{repo}/contents/{path}", "--input", "-", input_=json.dumps(body))
     return f"https://raw.githubusercontent.com/{repo}/{ASSETS}/{path}"
-
-
-def own_effect(state: dict) -> bool:
-    """A new effect, or an update by the person whose submission added it: no review needed.
-    Replacing someone else's effect (or one added by hand) waits for the maintainer, since
-    installed effects update themselves on every Mac."""
-    if state["replaces"] is None:
-        return True
-    r = subprocess.run(["git", "log", "origin/main", "--diff-filter=A", "-1", "--format=%ae", "--",
-                        f"effects/{state['id']}.metal"], cwd=fx.ROOT, capture_output=True, text=True)
-    return r.stdout.strip().startswith(f"{state['user_id']}+")
 
 
 def merge(repo: str, pr: int) -> bool:
@@ -201,8 +212,7 @@ def publish(gif: str | None):
         gh("pr", "close", str(pr), "--comment", f"The checks in #{n} fail now; closing until they pass again.")
         pr = None
 
-    own = state["ok"] and own_effect(state)
-    merged = own and merge(repo, pr)
+    merged = state["ok"] and merge(repo, pr)
     if merged:
         gh("api", "-X", "DELETE", f"repos/{repo}/git/refs/heads/{branch}", check_=False)
         # Merging with the workflow's token doesn't start publish.yml by itself; a dispatch does.
@@ -216,14 +226,11 @@ def publish(gif: str | None):
                   f"检查全部通过，已通过 #{pr} 合并，几分钟后就会出现在所有人的特效市场里。以后要修改，在 Exit "
                   "里再点一次投稿（或再运行一次 `Exit --market submit`）即可。")
     elif state["ok"]:
-        why, why_zh = (("It replaces an effect someone else added, so the maintainer takes a look first.",
-                        "它会替换别人添加的特效，需要维护者先看一下。") if not own else
-                       ("It couldn't be merged automatically, so the maintainer takes a look.",
-                        "没能自动合并，维护者会来处理。"))
-        status = (f"✅ All checks passed. Pull request: #{pr}. {why} To change the effect, press Submit in Exit "
-                  "again (or run `Exit --market submit`): it updates this issue. · "
-                  f"检查全部通过，已提交 PR。{why_zh}要修改的话在 Exit 里再点一次投稿（或再运行一次 "
-                  "`Exit --market submit`），会更新这个 issue。")
+        status = (f"✅ All checks passed. Pull request: #{pr}. It couldn't be merged automatically, so the "
+                  "maintainer takes a look. To change the effect, press Submit in Exit again (or run "
+                  "`Exit --market submit`): it updates this issue. · "
+                  "检查全部通过，已提交 PR，但没能自动合并，维护者会来处理。要修改的话在 Exit 里再点一次投稿"
+                  "（或再运行一次 `Exit --market submit`），会更新这个 issue。")
     else:
         status = ("❌ Some checks failed. Fix the effect and press Submit in Exit again (or run "
                   "`Exit --market submit`): it updates this issue and the checks run again. · 有检查没通过。"

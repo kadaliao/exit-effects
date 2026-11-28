@@ -21,8 +21,10 @@ account (sign in once with a code on github.com, or a signed-in GitHub CLI is us
 checks it again, renders a preview and opens a pull request with you as the commit author,
 and Exit shows its answer on the effect's card. To fix something, press Submit again and the
 same issue is updated. Once the checks pass, the pull request is merged and the effect appears in
-everyone's market within minutes. Only a submission that replaces someone else's effect waits for
-the maintainer.
+everyone's market within minutes.
+
+An effect's file name is its name in the market, and it belongs to the GitHub account that first
+submitted it. To update your effect, submit it again under the same file name.
 
 Coding agents can do the same: ask Claude Code, Codex, … *"Submit my Paper Plane effect to
 the Exit market."* [AGENTS.md](AGENTS.md) tells it to run `Exit --market submit <effect> --wait`.
@@ -39,6 +41,8 @@ A pull request that adds `effects/<id>.metal` works too; it's merged after a rev
 | Start and finish | the first frame is exactly the untouched window and the last is fully transparent; opening effects start and end transparent and only add light |
 | Speed | at most 20 ms per Retina frame on GitHub's macOS runner, which is about four times slower than an Apple-silicon Mac (the slowest built-in effect takes about 16 ms there) |
 | Size | at most 32 KB, no `#include` |
+| Name | not the name of someone else's effect in the market (your own: that's an update) |
+| Original | not the same code as another effect; a copy with other comments or numbers counts as the same |
 
 Run them yourself before submitting:
 

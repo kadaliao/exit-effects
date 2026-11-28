@@ -43,7 +43,8 @@ The market's rules:
 | Start and finish | closing effects start as the untouched window and end fully transparent; `@events open` effects start and end transparent and only add light |
 | Speed | at most 20 ms per Retina frame on GitHub's macOS runner (about 5 ms on an Apple-silicon Mac) |
 | Size | at most 32 KB, no `#include` / `#import` |
-| Originality | the person's own work, not a copy of another app's effect |
+| Name | the file name is the effect's name in the market and belongs to the GitHub account that first submitted it; someone else's name fails, your own is an update |
+| Originality | the person's own work, not a copy of another app's effect; the same code as an effect in the market fails, even with other comments or numbers |
 
 How to write or fix an effect: the [authoring guide](https://raw.githubusercontent.com/kadaliao/exit/main/docs/EFFECTS.md).
 
@@ -74,10 +75,13 @@ reasons are printed), `2` the effect or the arguments weren't found.
   same issue and the checks run again. Don't open a new issue or pull request by hand.
 - **Accepted:** the bot merges the pull request, and the effect is on
   <https://kadaliao.github.io/exit-effects/> and in everyone's Settings → Market within
-  minutes. A submission that replaces someone else's effect waits for the maintainer instead;
-  the bot's report says which happened. Tell the person the issue link.
+  minutes. Tell the person the issue link.
 - **An update to an effect that's already in the market:** submit the new version the same
-  way; the pull request replaces the old file.
+  way, under the same file name and from the same GitHub account; the pull request replaces
+  the old file.
+- **"Name" failed:** someone else's effect has that file name. Rename the file (and its
+  `@name`) and submit again. **"Original" failed:** the code is already in the market;
+  don't resubmit it under another name.
 
 Prefer a pull request? Add `effects/<id>.metal` to a fork and open one; the same checks run,
 but the maintainer merges it by hand. The command above is quicker and gives you the report directly.

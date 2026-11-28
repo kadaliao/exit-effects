@@ -1,5 +1,5 @@
-# Turns a submission issue into a pull request, and merges it once the checks pass (unless it
-# replaces someone else's effect). Submissions come from `Exit --market submit`
+# Turns a submission issue into a pull request and merges it once the checks pass.
+# Submissions come from `Exit --market submit`
 # (see AGENTS.md), which starts the issue with an <!-- exit-effect-submission --> marker.
 name: Submission
 on:
