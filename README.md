@@ -85,6 +85,7 @@ folder with an `index.json` like [this one](https://kadaliao.github.io/exit-effe
       "name_zh": "百叶窗",
       "description": "The window turns into slats that flip shut one after another.",
       "author": "Kada Liao",
+      "owner_id": 7401626,
       "events": ["close", "quit", "minimize"],
       "duration": 0.75,
       "requires": "0.3",
@@ -96,7 +97,9 @@ folder with an `index.json` like [this one](https://kadaliao.github.io/exit-effe
 }
 ```
 
-`file` and `preview` are relative to the folder. Fork this repository to reuse the checks
-and the publishing: the scripts follow the repository they run in (change the links in
-`site/index.html`, `AGENTS.md` and `MarketSubmit.repo` in Exit), then enable GitHub Pages on the
-`gh-pages` branch.
+`file` and `preview` are relative to the folder. `owner_id` is optional: the GitHub account that
+submitted the effect, so Exit's Submit sheet can tell an update from a taken name.
+
+Fork this repository to reuse the checks and the publishing: the scripts follow the repository
+they run in (change the links in `site/index.html`, `AGENTS.md` and `MarketSubmit.repo` in Exit),
+then enable GitHub Pages on the `gh-pages` branch.

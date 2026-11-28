@@ -72,6 +72,17 @@ def shape(source: str) -> str:
     return sha256(re.sub(r"\s+", "", NUMBER.sub("0", code)).encode())
 
 
+def owner_id(eid: str) -> int | None:
+    """The GitHub account id that effect `eid` belongs to: whoever's submission added the file.
+    The bot writes the submitter's id into that commit's author (<id>+<login>@users.noreply.github.com).
+    Effects added by hand, with some other author, are the repository owner's."""
+    email = subprocess.run(["git", "log", "--diff-filter=A", "-1", "--format=%ae", "--", f"effects/{eid}.metal"],
+                           cwd=ROOT, capture_output=True, text=True).stdout.strip()
+    m = re.fullmatch(r"(\d+)\+.+@users\.noreply\.github\.com", email)
+    fallback = os.environ.get("GITHUB_REPOSITORY_OWNER_ID", "")
+    return int(m.group(1)) if m else int(fallback) if email and fallback.isdigit() else None
+
+
 def version_tuple(v: str) -> tuple:
     return tuple(int(re.match(r"\d*", p).group() or 0) for p in v.split("."))
 

@@ -75,16 +75,6 @@ def with_author(source: str, login: str) -> str:
     return "\n".join(lines)
 
 
-def owns(eid: str, login: str, uid: int) -> bool:
-    """Whether this GitHub account put effect `eid` in the market. The commit that added the file
-    says so: publish() writes the submitter's account id into its author. Effects added by hand,
-    with some other author, are the repository owner's."""
-    email = subprocess.run(["git", "log", "--diff-filter=A", "-1", "--format=%ae", "--", f"effects/{eid}.metal"],
-                           cwd=fx.ROOT, capture_output=True, text=True).stdout.strip()
-    m = re.fullmatch(r"(\d+)\+.+@users\.noreply\.github\.com", email)
-    return int(m.group(1)) == uid if m else login == os.environ.get("GITHUB_REPOSITORY_OWNER")
-
-
 def output(**kv):
     path = os.environ.get("GITHUB_OUTPUT")
     text = "".join(f"{k}={v}\n" for k, v in kv.items())
@@ -120,7 +110,7 @@ def read(event_path: str):
         if path.exists():
             old = path.read_text()
             by = fx.parse_header(old).get("author") or "?"
-            if owns(eid, login, issue["user"]["id"]):
+            if fx.owner_id(eid) == issue["user"]["id"]:
                 state["replaces"] = by
             else:
                 taken = (by, fx.shape(old) == fx.shape(source))

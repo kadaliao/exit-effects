@@ -59,6 +59,7 @@ def entries():
             "description": meta.get("description"),
             "description_zh": meta.get("description.zh"),
             "author": meta.get("author"),
+            "owner_id": fx.owner_id(path.stem),   # the GitHub account that may update it; Exit's Submit sheet reads this
             "events": fx.events_of(meta),
             "duration": fx.duration_of(meta),
             "requires": meta.get("requires"),
